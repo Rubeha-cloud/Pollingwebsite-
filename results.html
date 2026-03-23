@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poll Results</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .results-table { width: 100%; border-collapse: collapse; margin: 2rem auto; }
+        .results-table th, .results-table td { border: 1px solid #ccc; padding: .7em; text-align: left; }
+        .results-table th { background: #f0f4f8; font-weight: bold; }
+        .container { max-width: 600px; }
+        .login-form { margin: 2rem 0; }
+        .login-form input { width: 100%; padding: .5rem; margin-bottom: 1rem; font-size: 1rem; }
+        .login-form button { width: 100%; }
+        .error { color: #d32f2f; font-weight: bold; margin: 1rem 0; }
+        .success { color: #388e3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Poll Results</h2>
+        
+        <div id="loginSection" class="login-form">
+            <h3>Admin Access</h3>
+            <label for="password">Enter Admin Password:</label>
+            <input type="password" id="password" placeholder="Admin password">
+            <button onclick="authenticate()">View Results</button>
+            <div id="error" class="error" style="display:none;"></div>
+        </div>
+
+        <div id="resultsSection" style="display:none;">
+            <p class="success">✓ Results loaded successfully</p>
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr><th>Name</th><th>Vote</th><th>Timestamp</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button onclick="logout()" style="margin-top:1rem;">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        function authenticate() {
+            const password = document.getElementById('password').value;
+            
+            fetch('/api/results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Unauthorized');
+                return res.json();
+            })
+            .then(votes => {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                const tbody = document.querySelector('#resultsTable tbody');
+                tbody.innerHTML = '';
+                votes.forEach(vote => {
+                    const date = new Date(vote.timestamp).toLocaleString();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${vote.name}</td><td>${vote.option}</td><td>${date}</td>`;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(err => {
+                document.getElementById('error').textContent = '❌ Incorrect password';
+                document.getElementById('error').style.display = 'block';
+            });
+        }
+
+        function logout() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('password').value = '';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') authenticate();
+        });
+    </script>
+</body>
+</html>
